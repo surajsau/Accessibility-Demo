@@ -2,9 +2,17 @@ package com.halfplatepoha.accesibility;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.v4.view.accessibility.AccessibilityEventCompat;
+import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
+import android.support.v4.view.accessibility.AccessibilityRecordCompat;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -20,9 +28,18 @@ public class AccessibilityTestService extends AccessibilityService {
 
     private static final String TAG = "AS";
 
-    private Queue<AccessibilityNodeInfo> mQueue;
+    private Queue<AccessibilityNodeInfoCompat> mQueue;
 
-    private boolean found;
+    private Finder mFinder;
+
+    private SnapdealHelper mSDHelper;
+
+    private Rect mRect;
+
+    private WindowManager windowManager;
+
+    private boolean isSearchClicked;
+    private boolean isProductNameEntered;
 
     private String getEventText(AccessibilityEvent event) {
         StringBuilder sb = new StringBuilder();
@@ -33,31 +50,79 @@ public class AccessibilityTestService extends AccessibilityService {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        windowManager = (WindowManager)getSystemService(WINDOW_SERVICE);
+    }
+
+    @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        AccessibilityRecordCompat record = AccessibilityEventCompat.asRecord(event);
+        AccessibilityNodeInfoCompat nodeInfo = record.getSource();
+
         switch (event.getEventType()) {
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED: {
-
-                AccessibilityNodeInfo nodeInfo = event.getSource();
-
                 if(nodeInfo != null) {
-                    AccessibilityNodeInfo foundNode;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                        foundNode = getNodeByViewId(nodeInfo, "com.flipkart.android:id/search_widget_textbox");
-                    } else {
-                        foundNode  = getNodeByText(nodeInfo, "Search for Products, Brands");
-                    }
+                    dfs(nodeInfo);
 
-                    if(foundNode != null) {
-                        if(!found)
-                            logInfo(foundNode);
-                        found = true;
-                    } else {
-                        found = false;
-                    }
+                    indicate(mSDHelper.findSearchBar(nodeInfo), "#000000");
+                    indicate(mSDHelper.findSearchEditText(nodeInfo), "#FCAC0C");
+                    indicate(mSDHelper.findCardWithSearchName(nodeInfo), "#000000");
+
+//                    switch (mSDHelper.getClickLevel()) {
+//                        case 0:
+//                            indicate(mSDHelper.findSearchBar(nodeInfo), "#000000");
+//                            mSDHelper.setClickLevel(1);
+//                            break;
+//
+//                        case 1:
+//                            indicate(mSDHelper.findSearchEditText(nodeInfo), "#FCAC0C");
+//                            mSDHelper.setClickLevel(2);
+//                            break;
+//                    }
+
+//                    AccessibilityNodeInfoCompat foundNode;
+//                    foundNode = getNodeByViewId(nodeInfo, "com.bt.bms:id/viewPager");
+//
+//                    if(foundNode != null) {
+//                        logInfo(foundNode);
+//                        if(mRect == null)
+//                            mRect = new Rect();
+//
+//                        foundNode.getBoundsInScreen(mRect);
+//
+//                        showIndicator();
+//                    }
+
+
                 }
             }
             break;
 
+            case AccessibilityEvent.TYPE_VIEW_CLICKED: {
+                if(mRect != null)
+                    hideIndicator();
+
+                if(nodeInfo != null) {
+                    Log.d("==", "==============");
+                    logOthers(nodeInfo);
+                    Log.d("==", "==============");
+                }
+            }
+
+        }
+    }
+
+    private void indicate(AccessibilityNodeInfoCompat node, String color) {
+        if(node != null) {
+            logInfo(node);
+
+            if(mRect == null)
+                mRect = new Rect();
+
+            node.getBoundsInScreen(mRect);
+
+            showIndicator(color);
         }
     }
 
@@ -71,11 +136,14 @@ public class AccessibilityTestService extends AccessibilityService {
         super.onServiceConnected();
         Log.v(TAG, "onServiceConnected");
         mQueue = new LinkedList<>();
+
+        mFinder = Finder.getInstance();
+        mSDHelper = new SnapdealHelper(mFinder);
     }
 
-    private void logInfo(AccessibilityNodeInfo nodeInfo) {
+    private void logInfo(AccessibilityNodeInfoCompat nodeInfo) {
         if(nodeInfo != null) {
-            Log.i("child", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
+            Log.i("child i", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
                     nodeInfo.getViewIdResourceName(),
                     nodeInfo.getContentDescription(),
                     nodeInfo.getClassName(),
@@ -83,39 +151,23 @@ public class AccessibilityTestService extends AccessibilityService {
         }
     }
 
-    private AccessibilityNodeInfo getNodeByText(AccessibilityNodeInfo root, String nodeText) {
-        return dfs(root, nodeText, SearchParameterType.TYPE_TEXT);
+    private void logOthers(AccessibilityNodeInfoCompat nodeInfo) {
+        if(nodeInfo != null) {
+            Log.e("child e", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
+                    nodeInfo.getViewIdResourceName(),
+                    nodeInfo.getContentDescription(),
+                    nodeInfo.getClassName(),
+                    nodeInfo.getText()));
+        }
     }
 
-    private AccessibilityNodeInfo getNodeByViewId(AccessibilityNodeInfo root, String viewId) {
-        return dfs(root, viewId, SearchParameterType.TYPE_VIEW_RESOURCE_ID);
-    }
-
-    private AccessibilityNodeInfo dfs(AccessibilityNodeInfo root, @NonNull Object searchParameter, SearchParameterType searchType) {
+    private void dfs(AccessibilityNodeInfoCompat root) {
         mQueue.add(root);
 
         while(!mQueue.isEmpty()) {
-            AccessibilityNodeInfo node = mQueue.remove();
+            AccessibilityNodeInfoCompat node = mQueue.remove();
 
-            switch (searchType) {
-                case TYPE_VIEW_RESOURCE_ID: {
-                    String param = (String)searchParameter;
-                    if(param.equalsIgnoreCase(node.getViewIdResourceName())) {
-                        mQueue.clear();
-                        return node;
-                    }
-                }
-                break;
-
-                case TYPE_TEXT: {
-                    String param = (String)searchParameter;
-                    if(param.equalsIgnoreCase(node.getText().toString())) {
-                        mQueue.clear();
-                        return node;
-                    }
-                }
-                break;
-            }
+            logOthers(node);
 
             if(node.getChildCount() > 0) {
                 for(int i=0; i<node.getChildCount(); i++) {
@@ -127,8 +179,38 @@ public class AccessibilityTestService extends AccessibilityService {
         }
 
         mQueue.clear();
-        return null;
     }
 
+    private void showIndicator(String color) {
+        View rectView = new FrameView(this, mRect, color);
+
+        ViewGroup.LayoutParams params = new WindowManager.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                mRect.left, mRect.top,
+                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                        | WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                PixelFormat.TRANSPARENT);
+
+        windowManager.addView(rectView, params);
+    }
+
+    private void hideIndicator() {
+        View rectView = new RemoveFrameView(this, mRect);
+
+        ViewGroup.LayoutParams params = new WindowManager.LayoutParams(mRect.height(),
+                mRect.width(),
+                mRect.left, mRect.top,
+                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                        | WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                PixelFormat.TRANSPARENT);
+
+        windowManager.addView(rectView, params);
+    }
 
 }
