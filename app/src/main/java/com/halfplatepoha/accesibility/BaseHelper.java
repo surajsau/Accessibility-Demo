@@ -7,10 +7,13 @@ import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
  */
 public class BaseHelper {
 
+    public String mBaseId;
+
     private Finder mFinder;
 
-    public BaseHelper(Finder finder) {
+    public BaseHelper(Finder finder, String baseId) {
         mFinder = finder;
+        mBaseId = baseId;
     }
 
     public AccessibilityNodeInfoCompat getNodeByText(AccessibilityNodeInfoCompat root, String nodeText) {
@@ -18,11 +21,17 @@ public class BaseHelper {
     }
 
     public AccessibilityNodeInfoCompat getNodeByViewId(AccessibilityNodeInfoCompat root, String viewId) {
-        return mFinder.dfs(root, viewId, SearchParameterType.TYPE_VIEW_RESOURCE_ID);
+        return mFinder.dfs(root, mBaseId + viewId, SearchParameterType.TYPE_VIEW_RESOURCE_ID);
     }
 
     public AccessibilityNodeInfoCompat getNodeByViewIdAndText(AccessibilityNodeInfoCompat root, ViewIdTextModel model) {
+        if(model != null)
+            model.setViewId(mBaseId + model.getViewId());
         return mFinder.dfs(root, model, SearchParameterType.TYPE_VIEW_RESOURCE_ID_AND_TEXT);
+    }
+
+    public AccessibilityNodeInfoCompat getNodeByDescription(AccessibilityNodeInfoCompat root, String description) {
+        return mFinder.dfs(root, description, SearchParameterType.TYPE_DESCRIPTION);
     }
 
 }

@@ -14,41 +14,42 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.List;
-
-import pub.devrel.easypermissions.AfterPermissionGranted;
-import pub.devrel.easypermissions.EasyPermissions;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     private static final int REQUEST_BIND_ACCESSIBILITY = 1001;
 
-    private Button btnSignIn;
+    private Button btnPermitAccessibility;
+    private Button btnPermitOverlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+//        askAccessbilityPermission();
 
-        btnSignIn = (Button) findViewById(R.id.btnSignIn);
+        btnPermitAccessibility = (Button) findViewById(R.id.btnPermitAccessibility);
+        btnPermitOverlay = (Button) findViewById(R.id.btnPermitOverlay);
 
-        btnSignIn.setOnClickListener(this);
+        btnPermitAccessibility.setOnClickListener(this);
+        btnPermitOverlay.setOnClickListener(this);
     }
 
-    private void askAccessbilityPermission() throws Exception {
-        if(!isAccessibilitySeriveEnabled()) {
-            int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.BIND_ACCESSIBILITY_SERVICE);
+    private void askAccessbilityPermission() {
+//        if(!isAccessibilitySeriveEnabled()) {
+//            int accessibilityPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.BIND_ACCESSIBILITY_SERVICE);
+            int drawOverAppsPermissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.SYSTEM_ALERT_WINDOW);
 
-            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BIND_ACCESSIBILITY_SERVICE},
+            if (drawOverAppsPermissionCheck !=  PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.SYSTEM_ALERT_WINDOW},
                         REQUEST_BIND_ACCESSIBILITY);
             }
-        } else {
-            Toast.makeText(this, "Accessibility Granted", Toast.LENGTH_SHORT).show();
-        }
+//        } else {
+//            Toast.makeText(this, "Accessibility Granted", Toast.LENGTH_SHORT).show();
+//        }
     }
 
     private boolean isAccessibilitySeriveEnabled() throws Exception {
@@ -66,10 +67,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.btnSignIn: {
+            case R.id.btnPermitAccessibility: {
                 startActivityForResult(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), REQUEST_BIND_ACCESSIBILITY);
             }
             break;
+
+            case R.id.btnPermitOverlay: {
+                startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION));
+            }
         }
     }
 }

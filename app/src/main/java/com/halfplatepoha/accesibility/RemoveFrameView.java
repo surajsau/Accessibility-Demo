@@ -14,19 +14,16 @@ import android.view.View;
  */
 public class RemoveFrameView extends View {
 
-    private Rect mRect;
     private Paint mPaint;
 
-    public RemoveFrameView(Context context, Rect rect) {
+    public RemoveFrameView(Context context) {
         super(context);
-        mRect = rect;
 
         mPaint = new Paint();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-        canvas.drawRect(0, 0, mRect.width(), mRect.height(), mPaint);
+        canvas.drawColor(Color.WHITE, PorterDuff.Mode.CLEAR);
     }
 }

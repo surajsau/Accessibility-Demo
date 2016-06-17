@@ -1,11 +1,9 @@
 package com.halfplatepoha.accesibility;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.AccessibilityServiceInfo;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
-import android.os.Build;
-import android.support.annotation.NonNull;
+import android.media.MediaPlayer;
 import android.support.v4.view.accessibility.AccessibilityEventCompat;
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 import android.support.v4.view.accessibility.AccessibilityRecordCompat;
@@ -14,11 +12,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 
 /**
@@ -30,16 +26,24 @@ public class AccessibilityTestService extends AccessibilityService {
 
     private Queue<AccessibilityNodeInfoCompat> mQueue;
 
+    private MediaPlayer pingPlayer, hangoutPlayer;
+
     private Finder mFinder;
 
     private SnapdealHelper mSDHelper;
+
+    private FlipkartHelper mFKHelper;
 
     private Rect mRect;
 
     private WindowManager windowManager;
 
+    private FrameView rectView;
+
     private boolean isSearchClicked;
     private boolean isProductNameEntered;
+
+    private FlipkartLoginStages mStage;
 
     private String getEventText(AccessibilityEvent event) {
         StringBuilder sb = new StringBuilder();
@@ -52,6 +56,8 @@ public class AccessibilityTestService extends AccessibilityService {
     @Override
     public void onCreate() {
         super.onCreate();
+        pingPlayer = MediaPlayer.create(getApplicationContext(), R.raw.ping);
+        hangoutPlayer = MediaPlayer.create(getApplicationContext(), R.raw.hangout);
         windowManager = (WindowManager)getSystemService(WINDOW_SERVICE);
     }
 
@@ -63,66 +69,64 @@ public class AccessibilityTestService extends AccessibilityService {
         switch (event.getEventType()) {
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED: {
                 if(nodeInfo != null) {
-                    dfs(nodeInfo);
 
-                    indicate(mSDHelper.findSearchBar(nodeInfo), "#000000");
-                    indicate(mSDHelper.findSearchEditText(nodeInfo), "#FCAC0C");
-                    indicate(mSDHelper.findCardWithSearchName(nodeInfo), "#000000");
+                switch (mStage) {
+                    case SPLASH_SCREEN:{
+                        if(mFKHelper.isSplashScreenOpened(nodeInfo)) {
+                            pingPlayer.start();
+                            mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
+                        }
+                    }
+                    break;
 
-//                    switch (mSDHelper.getClickLevel()) {
-//                        case 0:
-//                            indicate(mSDHelper.findSearchBar(nodeInfo), "#000000");
-//                            mSDHelper.setClickLevel(1);
-//                            break;
-//
-//                        case 1:
-//                            indicate(mSDHelper.findSearchEditText(nodeInfo), "#FCAC0C");
-//                            mSDHelper.setClickLevel(2);
-//                            break;
-//                    }
+                    case SIGNUP_SIGNIN_SCREEN:{
+                        AccessibilityNodeInfoCompat node = mFKHelper.findSignUpButton(nodeInfo);
+                        if(node != null) {
+                            indicate(node);
+                            hangoutPlayer.start();
+                            mStage = FlipkartLoginStages.SIGNUP_SCREEN;
+                        }
+                    }
+                    break;
 
-//                    AccessibilityNodeInfoCompat foundNode;
-//                    foundNode = getNodeByViewId(nodeInfo, "com.bt.bms:id/viewPager");
-//
-//                    if(foundNode != null) {
-//                        logInfo(foundNode);
-//                        if(mRect == null)
-//                            mRect = new Rect();
-//
-//                        foundNode.getBoundsInScreen(mRect);
-//
-//                        showIndicator();
-//                    }
-
-
+                    case SIGNUP_SCREEN:{
+                        AccessibilityNodeInfoCompat node = mFKHelper.findEnterMobileNumberEditText(nodeInfo);
+                        if(node != null) {
+                            indicate(node);
+                            pingPlayer.start();
+                            mStage = FlipkartLoginStages.SIGNUP_SCREEN_MOBILE_CLICK;
+                        }
+                    }
+                    break;
                 }
+                }
+
             }
             break;
 
             case AccessibilityEvent.TYPE_VIEW_CLICKED: {
-                if(mRect != null)
-                    hideIndicator();
 
-                if(nodeInfo != null) {
-                    Log.d("==", "==============");
-                    logOthers(nodeInfo);
-                    Log.d("==", "==============");
+                switch (mStage) {
+                    case ZERO:
+                        if (mFKHelper.isFlipkartAppIconClicked(nodeInfo)) {
+                            mStage = FlipkartLoginStages.SPLASH_SCREEN;
+                        }
+                        break;
                 }
+
             }
+            break;
 
         }
     }
 
-    private void indicate(AccessibilityNodeInfoCompat node, String color) {
+    private void indicate(AccessibilityNodeInfoCompat node) {
         if(node != null) {
-            logInfo(node);
+//            logInfo(node);
+            Rect rect = new Rect();
+            node.getBoundsInScreen(rect);
 
-            if(mRect == null)
-                mRect = new Rect();
-
-            node.getBoundsInScreen(mRect);
-
-            showIndicator(color);
+            showIndicator(rect);
         }
     }
 
@@ -138,7 +142,10 @@ public class AccessibilityTestService extends AccessibilityService {
         mQueue = new LinkedList<>();
 
         mFinder = Finder.getInstance();
-        mSDHelper = new SnapdealHelper(mFinder);
+        pingPlayer.start();
+//        mSDHelper = new SnapdealHelper(mFinder, "com.snapdeal.main:id/");
+        mStage = FlipkartLoginStages.ZERO;
+        mFKHelper = new FlipkartHelper(mFinder, "com.flipkart.android:id/");
     }
 
     private void logInfo(AccessibilityNodeInfoCompat nodeInfo) {
@@ -154,6 +161,16 @@ public class AccessibilityTestService extends AccessibilityService {
     private void logOthers(AccessibilityNodeInfoCompat nodeInfo) {
         if(nodeInfo != null) {
             Log.e("child e", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
+                    nodeInfo.getViewIdResourceName(),
+                    nodeInfo.getContentDescription(),
+                    nodeInfo.getClassName(),
+                    nodeInfo.getText()));
+        }
+    }
+
+    private void logOthersX(AccessibilityNodeInfoCompat nodeInfo) {
+        if(nodeInfo != null) {
+            Log.v("child e", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
                     nodeInfo.getViewIdResourceName(),
                     nodeInfo.getContentDescription(),
                     nodeInfo.getClassName(),
@@ -181,12 +198,38 @@ public class AccessibilityTestService extends AccessibilityService {
         mQueue.clear();
     }
 
-    private void showIndicator(String color) {
-        View rectView = new FrameView(this, mRect, color);
+    private void dfsX(AccessibilityNodeInfoCompat root) {
+        mQueue.add(root);
+
+        while(!mQueue.isEmpty()) {
+            AccessibilityNodeInfoCompat node = mQueue.remove();
+
+            logOthersX(node);
+
+            if(node.getChildCount() > 0) {
+                for(int i=0; i<node.getChildCount(); i++) {
+                    if(node.getChild(i) != null)
+                        mQueue.add(node.getChild(i));
+                }
+            }
+
+        }
+
+        mQueue.clear();
+    }
+
+    private void showIndicator(Rect rect) {
+        if(rectView == null)
+            rectView = new FrameView(this);
+
+        if(rectView != null)
+            rectView.setVisibility(View.GONE);
+
+        rectView.showScreen(rect);
 
         ViewGroup.LayoutParams params = new WindowManager.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                mRect.left, mRect.top,
+                rect.left, rect.top,
                 WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
@@ -198,19 +241,8 @@ public class AccessibilityTestService extends AccessibilityService {
     }
 
     private void hideIndicator() {
-        View rectView = new RemoveFrameView(this, mRect);
-
-        ViewGroup.LayoutParams params = new WindowManager.LayoutParams(mRect.height(),
-                mRect.width(),
-                mRect.left, mRect.top,
-                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                        | WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                PixelFormat.TRANSPARENT);
-
-        windowManager.addView(rectView, params);
+        if(rectView != null)
+            rectView.setVisibility(View.GONE);
     }
 
 }

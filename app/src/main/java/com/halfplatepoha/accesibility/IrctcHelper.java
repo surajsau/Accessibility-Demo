@@ -10,7 +10,7 @@ public class IrctcHelper extends BaseHelper {
     private static final String BASE_ID = "com.irctc.main:id/";
 
     public IrctcHelper(Finder finder) {
-        super(finder);
+        super(finder, BASE_ID);
     }
 
     public void findUserName(AccessibilityNodeInfoCompat root) {

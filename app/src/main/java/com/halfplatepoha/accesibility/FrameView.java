@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
@@ -15,21 +17,38 @@ public class FrameView extends View {
 
     private Rect mRect;
     private Paint mPaint;
-    private String mColor;
 
-    public FrameView(Context context, Rect rect, String color) {
+    private boolean isClear;
+
+    public FrameView(Context context) {
         super(context);
-        mRect = rect;
-        mColor = color;
-        mPaint = new Paint();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        mPaint.setColor(Color.RED);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(3);
+        if(!isClear) {
+            Paint paint = new Paint();
+            paint.setColor(Color.RED);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(3);
 
-        canvas.drawRect(0, 0, mRect.width(), mRect.height(), mPaint);
+            canvas.drawRect(0, 0, mRect.width(), mRect.height(), paint);
+        } else {
+            Paint paint = new Paint();
+            paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+
+            canvas.drawRect(0, 0, mRect.width(), mRect.height(), paint);
+        }
+    }
+
+    public void showScreen(Rect rect) {
+        isClear = false;
+        mRect = rect;
+    }
+
+    public void clearScreen(Rect rect) {
+        mRect = rect;
+        isClear = true;
+        invalidate();
     }
 }

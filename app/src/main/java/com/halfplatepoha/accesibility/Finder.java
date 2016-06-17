@@ -45,7 +45,8 @@ public class Finder {
 
                 case TYPE_TEXT: {
                     String param = (String)searchParameter;
-                    if(param.equalsIgnoreCase(node.getText().toString())) {
+                    if((node.getText() != null)
+                            && (node.getText().toString()).contains(param)) {
                         mQueue.clear();
                         return node;
                     }
@@ -53,8 +54,26 @@ public class Finder {
                 break;
 
                 case TYPE_VIEW_RESOURCE_ID_AND_TEXT: {
-
+                    ViewIdTextModel model = (ViewIdTextModel)searchParameter;
+                    if(model.getViewId().equalsIgnoreCase(node.getViewIdResourceName())
+                            && node.getText() != null
+                            && (node.getText().toString()).contains(model.getText())) {
+                        mQueue.clear();
+                        return node;
+                    }
                 }
+                break;
+
+                case TYPE_DESCRIPTION: {
+                    String param = (String)searchParameter;
+                    if(node.getContentDescription() != null
+                            && (node.getContentDescription().toString()).equalsIgnoreCase(param)) {
+                        mQueue.clear();
+                        return node;
+                    }
+                }
+                break;
+
             }
 
             if(node.getChildCount() > 0) {

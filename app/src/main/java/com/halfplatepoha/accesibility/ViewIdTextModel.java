@@ -20,4 +20,12 @@ public class ViewIdTextModel {
     public String getText() {
         return text;
     }
+
+    public void setViewId(String viewId) {
+        this.viewId = viewId;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
 }
