@@ -1,6 +1,10 @@
-package com.halfplatepoha.accesibility;
+package com.halfplatepoha.accesibility.flipkart;
 
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
+
+import com.halfplatepoha.accesibility.BaseHelper;
+import com.halfplatepoha.accesibility.Finder;
+import com.halfplatepoha.accesibility.ViewIdTextModel;
 
 /**
  * Created by surajkumarsau on 06/06/16.
@@ -12,7 +16,12 @@ public class FlipkartHelper extends BaseHelper {
     }
 
     public boolean isFlipkartAppIconClicked(AccessibilityNodeInfoCompat root) {
-        return "Flipkart".equalsIgnoreCase(root.getContentDescription().toString());
+        return (root.getContentDescription() != null ?
+                "Flipkart".equalsIgnoreCase(root.getContentDescription().toString()):false);
+    }
+
+    public boolean isSignUpButtonClicked(AccessibilityNodeInfoCompat root) {
+        return "btn_msignup".equalsIgnoreCase(root.getViewIdResourceName());
     }
 
     public AccessibilityNodeInfoCompat findSearchBox(AccessibilityNodeInfoCompat root) {

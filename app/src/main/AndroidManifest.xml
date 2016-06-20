@@ -18,6 +18,14 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".HelperActivity"
+            android:theme="@style/TransparentActivity"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:taskAffinity="">
+
+        </activity>
+
         <service android:name=".AccessibilityTestService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
 

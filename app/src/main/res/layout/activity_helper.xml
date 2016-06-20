@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <LinearLayout
+        android:layout_width="150dp"
+        android:layout_height="250dp"
+        android:layout_centerInParent="true"
+        android:background="#8fcc0000"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <Button android:id="@+id/btnChoice1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:background="@null"
+            tools:text="1 - Naya"
+            android:textAllCaps="false"
+            android:textSize="20sp"/>
+
+        <Button android:id="@+id/btnChoice2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:background="@null"
+            tools:text="2 - Purana"
+            android:layout_marginTop="40dp"
+            android:textAllCaps="false"
+            android:textSize="20sp"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

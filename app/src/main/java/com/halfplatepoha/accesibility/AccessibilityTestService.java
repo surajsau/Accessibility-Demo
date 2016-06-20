@@ -1,18 +1,24 @@
 package com.halfplatepoha.accesibility;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.media.MediaPlayer;
+import android.os.Handler;
 import android.support.v4.view.accessibility.AccessibilityEventCompat;
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 import android.support.v4.view.accessibility.AccessibilityRecordCompat;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
-import android.widget.Toast;
+
+import com.halfplatepoha.accesibility.flipkart.FlipkartHelper;
+import com.halfplatepoha.accesibility.flipkart.FlipkartLoginStages;
+import com.halfplatepoha.accesibility.util.IConstants;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -20,7 +26,7 @@ import java.util.Queue;
 /**
  * Created by MacboolBro on 21/05/16.
  */
-public class AccessibilityTestService extends AccessibilityService {
+public class AccessibilityTestService extends AccessibilityService implements IConstants {
 
     private static final String TAG = "AS";
 
@@ -38,10 +44,18 @@ public class AccessibilityTestService extends AccessibilityService {
 
     private WindowManager windowManager;
 
+    private AccessibilityNodeInfoCompat foundNode;
+
+    private Rect foundRect;
+
     private FrameView rectView;
+
+    private boolean isViewAdded;
 
     private boolean isSearchClicked;
     private boolean isProductNameEntered;
+
+    private String callbackResult;
 
     private FlipkartLoginStages mStage;
 
@@ -54,11 +68,21 @@ public class AccessibilityTestService extends AccessibilityService {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if(intent != null) {
+            callbackResult = intent.getStringExtra(CHOICE_RESULT);
+            foundRect = intent.getParcelableExtra(RECT_TO_BE_INDICATED);
+            postCallback();
+        }
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
     public void onCreate() {
         super.onCreate();
         pingPlayer = MediaPlayer.create(getApplicationContext(), R.raw.ping);
         hangoutPlayer = MediaPlayer.create(getApplicationContext(), R.raw.hangout);
-        windowManager = (WindowManager)getSystemService(WINDOW_SERVICE);
+        windowManager = (WindowManager)getApplicationContext().getSystemService(WINDOW_SERVICE);
     }
 
     @Override
@@ -69,22 +93,25 @@ public class AccessibilityTestService extends AccessibilityService {
         switch (event.getEventType()) {
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED: {
                 if(nodeInfo != null) {
+//                    dfs(nodeInfo);
 
                 switch (mStage) {
-                    case SPLASH_SCREEN:{
-                        if(mFKHelper.isSplashScreenOpened(nodeInfo)) {
-                            pingPlayer.start();
-                            mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
-                        }
-                    }
-                    break;
+//                    case SPLASH_SCREEN:{
+//                        if(mFKHelper.isSplashScreenOpened(nodeInfo)) {
+//                            pingPlayer.start();
+//                            mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
+//                        }
+//                    }
+//                    break;
 
                     case SIGNUP_SIGNIN_SCREEN:{
-                        AccessibilityNodeInfoCompat node = mFKHelper.findSignUpButton(nodeInfo);
-                        if(node != null) {
-                            indicate(node);
+                        foundNode = mFKHelper.findSignUpButton(nodeInfo);
+
+                        if(foundNode != null) {
+                            foundNode.getBoundsInScreen(foundRect);
                             hangoutPlayer.start();
-                            mStage = FlipkartLoginStages.SIGNUP_SCREEN;
+                            showDialog();
+//                            mStage = FlipkartLoginStages.SIGNUP_SCREEN;
                         }
                     }
                     break;
@@ -92,8 +119,9 @@ public class AccessibilityTestService extends AccessibilityService {
                     case SIGNUP_SCREEN:{
                         AccessibilityNodeInfoCompat node = mFKHelper.findEnterMobileNumberEditText(nodeInfo);
                         if(node != null) {
-                            indicate(node);
-                            pingPlayer.start();
+//                            indicate(node);
+                            showDialog();
+//                            pingPlayer.start();
                             mStage = FlipkartLoginStages.SIGNUP_SCREEN_MOBILE_CLICK;
                         }
                     }
@@ -108,10 +136,17 @@ public class AccessibilityTestService extends AccessibilityService {
 
                 switch (mStage) {
                     case ZERO:
-                        if (mFKHelper.isFlipkartAppIconClicked(nodeInfo)) {
-                            mStage = FlipkartLoginStages.SPLASH_SCREEN;
+                        if (nodeInfo != null && mFKHelper.isFlipkartAppIconClicked(nodeInfo)) {
+                            mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
+                            pingPlayer.start();
                         }
                         break;
+
+                    case SIGNUP_SIGNIN_SCREEN:{
+                        if(nodeInfo != null && mFKHelper.isSignUpButtonClicked(nodeInfo)) {
+                            mStage = FlipkartLoginStages.SIGNUP_SCREEN;
+                        }
+                    }
                 }
 
             }
@@ -143,8 +178,9 @@ public class AccessibilityTestService extends AccessibilityService {
 
         mFinder = Finder.getInstance();
         pingPlayer.start();
-//        mSDHelper = new SnapdealHelper(mFinder, "com.snapdeal.main:id/");
+        foundRect = new Rect();
         mStage = FlipkartLoginStages.ZERO;
+        isViewAdded = false;
         mFKHelper = new FlipkartHelper(mFinder, "com.flipkart.android:id/");
     }
 
@@ -219,30 +255,52 @@ public class AccessibilityTestService extends AccessibilityService {
     }
 
     private void showIndicator(Rect rect) {
-        if(rectView == null)
-            rectView = new FrameView(this);
-
-        if(rectView != null)
-            rectView.setVisibility(View.GONE);
-
-        rectView.showScreen(rect);
-
-        ViewGroup.LayoutParams params = new WindowManager.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                rect.left, rect.top,
-                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                        | WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                PixelFormat.TRANSPARENT);
-
-        windowManager.addView(rectView, params);
+//        if(rectView == null)
+//            rectView = new FrameView(this, rect);
+//
+//        WindowManager.LayoutParams params = new WindowManager.LayoutParams(100,
+//                100,
+//                rect.left, rect.top,
+//                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
+//                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+//                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+//                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+//                        | WindowManager.LayoutParams.FLAG_FULLSCREEN,
+//                PixelFormat.TRANSPARENT
+//        );
+//        windowManager.addView(rectView, params);
+        Intent indicatorIntent = new Intent();
     }
 
     private void hideIndicator() {
         if(rectView != null)
             rectView.setVisibility(View.GONE);
+    }
+
+    private void showDialog() {
+        Intent intent = new Intent(AccessibilityTestService.this, HelperActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(SOURCE_STAGE, mStage);
+        intent.putExtra(RECT_TO_BE_INDICATED, foundRect);
+        startActivity(intent);
+    }
+
+    private void postCallback() {
+        switch (callbackResult) {
+
+            case ChoiceResults.NEW_USER:{
+                showIndicator(foundRect);
+            }
+            break;
+
+            case ChoiceResults.EXISTING_USER:{
+                Intent intent = new Intent(AccessibilityTestService.this, HelperActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra(SOURCE_STAGE, FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN_EXISTING);
+                startActivity(intent);
+            }
+            break;
+        }
     }
 
 }

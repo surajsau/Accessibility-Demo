@@ -1,6 +1,10 @@
-package com.halfplatepoha.accesibility;
+package com.halfplatepoha.accesibility.irctc;
 
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
+
+import com.halfplatepoha.accesibility.BaseHelper;
+import com.halfplatepoha.accesibility.Finder;
+import com.halfplatepoha.accesibility.ViewIdTextModel;
 
 /**
  * Created by surajkumarsau on 05/06/16.
