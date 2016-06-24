@@ -9,9 +9,9 @@ public class Utils {
 
     public static String getFirstChoice(FlipkartLoginStages stage) {
         switch (stage) {
-            case SIGNUP_SIGNIN_SCREEN:
+            case ZERO:
                 return "Naye";
-            case SIGNUP_SIGNIN_SCREEN_EXISTING:
+            case SIGNUP_SCREEN:
                 return "Email";
         }
         return "";
@@ -19,9 +19,9 @@ public class Utils {
 
     public static String getSecondChoice(FlipkartLoginStages stage) {
         switch (stage) {
-            case SIGNUP_SIGNIN_SCREEN:
+            case ZERO:
                 return "Purane";
-            case SIGNUP_SIGNIN_SCREEN_EXISTING:
+            case SIGNUP_SCREEN:
                 return "Phone Number";
         }
         return "";

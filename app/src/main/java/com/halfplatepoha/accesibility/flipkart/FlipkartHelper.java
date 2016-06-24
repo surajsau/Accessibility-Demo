@@ -15,13 +15,18 @@ public class FlipkartHelper extends BaseHelper {
         super(finder, baseId);
     }
 
+    //--not working on all devices (different launchers issue)
     public boolean isFlipkartAppIconClicked(AccessibilityNodeInfoCompat root) {
         return (root.getContentDescription() != null ?
                 "Flipkart".equalsIgnoreCase(root.getContentDescription().toString()):false);
     }
 
+    public boolean isFlipkartHomeScreenReached(AccessibilityNodeInfoCompat root) {
+        return (mBaseId.concat("drawer_layout").equalsIgnoreCase(root.getViewIdResourceName()));
+    }
+
     public boolean isSignUpButtonClicked(AccessibilityNodeInfoCompat root) {
-        return "btn_msignup".equalsIgnoreCase(root.getViewIdResourceName());
+        return mBaseId.concat("btn_msignup").equalsIgnoreCase(root.getViewIdResourceName());
     }
 
     public AccessibilityNodeInfoCompat findSearchBox(AccessibilityNodeInfoCompat root) {

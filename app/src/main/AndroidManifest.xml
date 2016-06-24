@@ -35,6 +35,8 @@
             <meta-data android:resource="@xml/accessbility_test_config"
                 android:name="android.accessibilityservice"/>
         </service>
+
+        <service android:name=".IndicatorService"/>
     </application>
 
 </manifest>

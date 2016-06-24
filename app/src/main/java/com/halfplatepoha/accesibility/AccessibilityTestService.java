@@ -95,38 +95,35 @@ public class AccessibilityTestService extends AccessibilityService implements IC
                 if(nodeInfo != null) {
 //                    dfs(nodeInfo);
 
-                switch (mStage) {
-//                    case SPLASH_SCREEN:{
-//                        if(mFKHelper.isSplashScreenOpened(nodeInfo)) {
-//                            pingPlayer.start();
-//                            mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
-//                        }
-//                    }
-//                    break;
+                    switch (mStage) {
+//                        case ZERO:
+//                            if (nodeInfo != null && mFKHelper.isFlipkartHomeScreenReached(nodeInfo)) {
+//                                mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
+//                                pingPlayer.start();
+//                            }
+//                            break;
 
-                    case SIGNUP_SIGNIN_SCREEN:{
-                        foundNode = mFKHelper.findSignUpButton(nodeInfo);
+                        case ZERO:{
+                            foundNode = mFKHelper.findSignUpButton(nodeInfo);
 
-                        if(foundNode != null) {
-                            foundNode.getBoundsInScreen(foundRect);
-                            hangoutPlayer.start();
-                            showDialog();
-//                            mStage = FlipkartLoginStages.SIGNUP_SCREEN;
+                            if(foundNode != null) {
+                                foundNode.getBoundsInScreen(foundRect);
+                                hangoutPlayer.start();
+                                showDialog();
+                            }
                         }
-                    }
-                    break;
+                        break;
 
-                    case SIGNUP_SCREEN:{
-                        AccessibilityNodeInfoCompat node = mFKHelper.findEnterMobileNumberEditText(nodeInfo);
-                        if(node != null) {
-//                            indicate(node);
-                            showDialog();
-//                            pingPlayer.start();
-                            mStage = FlipkartLoginStages.SIGNUP_SCREEN_MOBILE_CLICK;
+                        case SIGNUP_SCREEN:{
+                            foundNode = mFKHelper.findEnterMobileNumberEditText(nodeInfo);
+                            if(foundNode != null) {
+                                foundNode.getBoundsInScreen(foundRect);
+                                hangoutPlayer.start();
+                                showIndicator(foundRect);
+                            }
                         }
+                        break;
                     }
-                    break;
-                }
                 }
 
             }
@@ -134,16 +131,16 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 
             case AccessibilityEvent.TYPE_VIEW_CLICKED: {
 
-                switch (mStage) {
-                    case ZERO:
-                        if (nodeInfo != null && mFKHelper.isFlipkartAppIconClicked(nodeInfo)) {
-                            mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
-                            pingPlayer.start();
-                        }
-                        break;
+//                if(nodeInfo != null) {
+//                    Log.d("==", "==============");
+//                    logOthers(nodeInfo);
+//                    Log.d("==", "==============");
+//                }
 
+                switch (mStage) {
                     case SIGNUP_SIGNIN_SCREEN:{
                         if(nodeInfo != null && mFKHelper.isSignUpButtonClicked(nodeInfo)) {
+                            hideIndicator();
                             mStage = FlipkartLoginStages.SIGNUP_SCREEN;
                         }
                     }
@@ -269,12 +266,13 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 //                PixelFormat.TRANSPARENT
 //        );
 //        windowManager.addView(rectView, params);
-        Intent indicatorIntent = new Intent();
+        Intent indicatorIntent = new Intent(this, IndicatorService.class);
+        indicatorIntent.putExtra(RECT_TO_BE_INDICATED, rect);
+        startService(indicatorIntent);
     }
 
     private void hideIndicator() {
-        if(rectView != null)
-            rectView.setVisibility(View.GONE);
+        stopService(new Intent(this, IndicatorService.class));
     }
 
     private void showDialog() {
@@ -289,7 +287,9 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         switch (callbackResult) {
 
             case ChoiceResults.NEW_USER:{
+                Log.d(TAG, "l" + foundRect.left + ", r" + foundRect.right + ", t" + foundRect.top + ", b" + foundRect.bottom);
                 showIndicator(foundRect);
+                mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
             }
             break;
 
