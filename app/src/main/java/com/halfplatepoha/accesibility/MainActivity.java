@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -20,9 +21,11 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     private static final int REQUEST_BIND_ACCESSIBILITY = 1001;
+    private static final int REQUEST_TTS_AVAILABILITY = 1002;
 
     private Button btnPermitAccessibility;
     private Button btnPermitOverlay;
+    private Button btnDownloadHindi;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,9 +35,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btnPermitAccessibility = (Button) findViewById(R.id.btnPermitAccessibility);
         btnPermitOverlay = (Button) findViewById(R.id.btnPermitOverlay);
+        btnDownloadHindi = (Button) findViewById(R.id.btnDownloadHindi);
 
         btnPermitAccessibility.setOnClickListener(this);
         btnPermitOverlay.setOnClickListener(this);
+        btnDownloadHindi.setOnClickListener(this);
     }
 
     private void askAccessbilityPermission() {
@@ -75,6 +80,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btnPermitOverlay: {
                 startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION));
             }
+            break;
+
+            case R.id.btnDownloadHindi: {
+                Intent checkIntent = new Intent();
+                checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+                startActivityForResult(checkIntent, REQUEST_TTS_AVAILABILITY);
+            }
+            break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_TTS_AVAILABILITY:{
+                if(resultCode != TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+                    Intent installIntent = new Intent();
+                    installIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                    startActivity(installIntent);
+                }
+            }
+            break;
         }
     }
 }

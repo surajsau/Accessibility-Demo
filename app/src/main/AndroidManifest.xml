@@ -36,7 +36,11 @@
                 android:name="android.accessibilityservice"/>
         </service>
 
-        <service android:name=".IndicatorService"/>
+        <service android:name=".IndicatorService">
+            <intent-filter>
+                <action android:name="com.halfplatepoha.accesibility.util.IConstants.INDICATOR_ACTION"/>
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

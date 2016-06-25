@@ -1,24 +1,25 @@
 package com.halfplatepoha.accesibility;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
+import android.content.ServiceConnection;
 import android.graphics.Rect;
 import android.media.MediaPlayer;
-import android.os.Handler;
+import android.os.Build;
+import android.os.IBinder;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.view.accessibility.AccessibilityEventCompat;
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 import android.support.v4.view.accessibility.AccessibilityRecordCompat;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
 import com.halfplatepoha.accesibility.flipkart.FlipkartHelper;
 import com.halfplatepoha.accesibility.flipkart.FlipkartLoginStages;
 import com.halfplatepoha.accesibility.util.IConstants;
+import com.halfplatepoha.accesibility.util.Utils;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -26,7 +27,7 @@ import java.util.Queue;
 /**
  * Created by MacboolBro on 21/05/16.
  */
-public class AccessibilityTestService extends AccessibilityService implements IConstants {
+public class AccessibilityTestService extends AccessibilityService implements IConstants, ServiceConnection, TextToSpeech.OnInitListener {
 
     private static final String TAG = "AS";
 
@@ -34,30 +35,23 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 
     private MediaPlayer pingPlayer, hangoutPlayer;
 
-    private Finder mFinder;
+    private TextToSpeech mTts;
 
-    private SnapdealHelper mSDHelper;
+    private Finder mFinder;
 
     private FlipkartHelper mFKHelper;
 
-    private Rect mRect;
-
-    private WindowManager windowManager;
-
-    private AccessibilityNodeInfoCompat foundNode;
+    private AccessibilityNodeInfoCompat foundNode, futureNeedMasterNode;
 
     private Rect foundRect;
 
-    private FrameView rectView;
-
-    private boolean isViewAdded;
-
-    private boolean isSearchClicked;
-    private boolean isProductNameEntered;
+    private boolean isBound;
 
     private String callbackResult;
 
     private FlipkartLoginStages mStage;
+
+    private IndicatorService mIndicatorService;
 
     private String getEventText(AccessibilityEvent event) {
         StringBuilder sb = new StringBuilder();
@@ -80,9 +74,12 @@ public class AccessibilityTestService extends AccessibilityService implements IC
     @Override
     public void onCreate() {
         super.onCreate();
+        mTts = new TextToSpeech(getApplicationContext(), this);
         pingPlayer = MediaPlayer.create(getApplicationContext(), R.raw.ping);
         hangoutPlayer = MediaPlayer.create(getApplicationContext(), R.raw.hangout);
-        windowManager = (WindowManager)getApplicationContext().getSystemService(WINDOW_SERVICE);
+
+        Intent indicatorIntent = new Intent(this, IndicatorService.class);
+        bindService(indicatorIntent, this, Context.BIND_AUTO_CREATE);
     }
 
     @Override
@@ -93,22 +90,20 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         switch (event.getEventType()) {
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED: {
                 if(nodeInfo != null) {
+//                    if(nodeInfo != null) {
+//                        Log.d("==", "==============");
+//                        logOthers(nodeInfo);
+//                        Log.d("==", "==============");
+//                    }
+//
 //                    dfs(nodeInfo);
-
                     switch (mStage) {
-//                        case ZERO:
-//                            if (nodeInfo != null && mFKHelper.isFlipkartHomeScreenReached(nodeInfo)) {
-//                                mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
-//                                pingPlayer.start();
-//                            }
-//                            break;
 
                         case ZERO:{
-                            foundNode = mFKHelper.findSignUpButton(nodeInfo);
+                            foundNode = mFKHelper.findSignUpButtonInAccountsScreen(nodeInfo);
 
                             if(foundNode != null) {
                                 foundNode.getBoundsInScreen(foundRect);
-                                hangoutPlayer.start();
                                 showDialog();
                             }
                         }
@@ -116,11 +111,43 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 
                         case SIGNUP_SCREEN:{
                             foundNode = mFKHelper.findEnterMobileNumberEditText(nodeInfo);
+
                             if(foundNode != null) {
+                                mStage = FlipkartLoginStages.SIGNUP_SCREEN_BEFORE_MOBILE_CLICK;
                                 foundNode.getBoundsInScreen(foundRect);
-                                hangoutPlayer.start();
                                 showIndicator(foundRect);
                             }
+                        }
+                        break;
+
+                        case SIGNUP_SCREEN_BEFORE_MOBILE_CLICK: {
+                            foundNode = mFKHelper.findSignUpButtonInNewAccountScreen(nodeInfo);
+                        }
+                        break;
+
+                        case AUTOVERIFICATION_SCREEN: {
+                            if(nodeInfo != null && mFKHelper.isMobileVerificationScreenOpened(nodeInfo)) {
+                                speak(mStage);
+                                mStage = FlipkartLoginStages.POST_AUTOVERIFICATION_SCREEN;
+                            }
+                        }
+                        break;
+
+                        case POST_AUTOVERIFICATION_SCREEN:{
+                            if(nodeInfo != null) {
+                                if(mFKHelper.isOTPScreenOpened(nodeInfo)) {
+                                    mStage = FlipkartLoginStages.OTP_SCREEN;
+                                } else {
+                                    //TODO: automatic verified
+                                }
+                            }
+                        }
+                        break;
+
+                        case OTP_SCREEN:{
+                            foundNode = mFKHelper.getResendCodeButton(nodeInfo);
+                            if(foundNode != null)
+                                showDialog();
                         }
                         break;
                     }
@@ -144,21 +171,37 @@ public class AccessibilityTestService extends AccessibilityService implements IC
                             mStage = FlipkartLoginStages.SIGNUP_SCREEN;
                         }
                     }
+                    break;
+
+                    case SIGNUP_SCREEN_AFTER_MOBILE_CLICK: {
+                        if(nodeInfo != null && mFKHelper.isSignUpButtonClicked(nodeInfo)) {
+                            hideIndicator();
+                            mStage = FlipkartLoginStages.AUTOVERIFICATION_SCREEN;
+                        }
+                    }
+                    break;
                 }
 
             }
             break;
 
-        }
-    }
+            case AccessibilityEvent.TYPE_VIEW_FOCUSED: {
+                switch (mStage) {
+                    case SIGNUP_SCREEN_BEFORE_MOBILE_CLICK: {
+                        if(nodeInfo != null && mFKHelper.isMobileNumberFieldClicked(nodeInfo)) {
+                            hideIndicator();
+                            if(foundNode != null) {
+                                mStage = FlipkartLoginStages.SIGNUP_SCREEN_AFTER_MOBILE_CLICK;
+                                foundNode.getBoundsInScreen(foundRect);
+                                foundRect.top -= 400;
+                                showIndicator(foundRect);
+                            }
+                        }
+                    }
+                }
+            }
+            break;
 
-    private void indicate(AccessibilityNodeInfoCompat node) {
-        if(node != null) {
-//            logInfo(node);
-            Rect rect = new Rect();
-            node.getBoundsInScreen(rect);
-
-            showIndicator(rect);
         }
     }
 
@@ -167,6 +210,7 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         Log.v(TAG, "onInterrupt");
     }
 
+    //--on accessibility service connected
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
@@ -177,7 +221,6 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         pingPlayer.start();
         foundRect = new Rect();
         mStage = FlipkartLoginStages.ZERO;
-        isViewAdded = false;
         mFKHelper = new FlipkartHelper(mFinder, "com.flipkart.android:id/");
     }
 
@@ -252,30 +295,18 @@ public class AccessibilityTestService extends AccessibilityService implements IC
     }
 
     private void showIndicator(Rect rect) {
-//        if(rectView == null)
-//            rectView = new FrameView(this, rect);
-//
-//        WindowManager.LayoutParams params = new WindowManager.LayoutParams(100,
-//                100,
-//                rect.left, rect.top,
-//                WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY,
-//                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-//                        | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-//                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-//                        | WindowManager.LayoutParams.FLAG_FULLSCREEN,
-//                PixelFormat.TRANSPARENT
-//        );
-//        windowManager.addView(rectView, params);
-        Intent indicatorIntent = new Intent(this, IndicatorService.class);
-        indicatorIntent.putExtra(RECT_TO_BE_INDICATED, rect);
-        startService(indicatorIntent);
+        if(isBound)
+            mIndicatorService.showIndicator(rect, mStage);
     }
 
     private void hideIndicator() {
-        stopService(new Intent(this, IndicatorService.class));
+        if(isBound)
+            mIndicatorService.hideIndicator();
     }
 
     private void showDialog() {
+        speak(mStage);
+
         Intent intent = new Intent(AccessibilityTestService.this, HelperActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra(SOURCE_STAGE, mStage);
@@ -283,13 +314,19 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         startActivity(intent);
     }
 
+    private void speak(FlipkartLoginStages stage) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            mTts.speak(Utils.getSpeechString(stage), TextToSpeech.QUEUE_FLUSH, null, null);
+        else
+            mTts.speak(Utils.getSpeechString(stage), TextToSpeech.QUEUE_FLUSH, null);
+    }
+
     private void postCallback() {
         switch (callbackResult) {
 
             case ChoiceResults.NEW_USER:{
-                Log.d(TAG, "l" + foundRect.left + ", r" + foundRect.right + ", t" + foundRect.top + ", b" + foundRect.bottom);
-                showIndicator(foundRect);
                 mStage = FlipkartLoginStages.SIGNUP_SIGNIN_SCREEN;
+                showIndicator(foundRect);
             }
             break;
 
@@ -300,7 +337,38 @@ public class AccessibilityTestService extends AccessibilityService implements IC
                 startActivity(intent);
             }
             break;
+
+            case ChoiceResults.OTP_YES: {
+
+            }
+            break;
+
+            case ChoiceResults.OTP_NO: {
+                foundNode.getBoundsInScreen(foundRect);
+                showIndicator(foundRect);
+            }
+            break;
         }
     }
 
+    //--on indicator binder service connected
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+        IndicatorService.IndicatorBinder binder = (IndicatorService.IndicatorBinder) service;
+        mIndicatorService = binder.getService();
+        isBound = true;
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+        isBound = false;
+    }
+
+    @Override
+    public void onInit(int status) {
+        if(status == TextToSpeech.SUCCESS) {
+        } else {
+            Log.e(TAG, "Couldn't initialize text to speech");
+        }
+    }
 }

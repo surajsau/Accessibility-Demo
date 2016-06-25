@@ -26,7 +26,11 @@ public class FlipkartHelper extends BaseHelper {
     }
 
     public boolean isSignUpButtonClicked(AccessibilityNodeInfoCompat root) {
-        return mBaseId.concat("btn_msignup").equalsIgnoreCase(root.getViewIdResourceName());
+        return (mBaseId.concat("btn_msignup").equalsIgnoreCase(root.getViewIdResourceName()));
+    }
+
+    public boolean isMobileNumberFieldClicked(AccessibilityNodeInfoCompat root) {
+        return (mBaseId.concat("mobileNo").equalsIgnoreCase(root.getViewIdResourceName()));
     }
 
     public AccessibilityNodeInfoCompat findSearchBox(AccessibilityNodeInfoCompat root) {
@@ -41,8 +45,14 @@ public class FlipkartHelper extends BaseHelper {
         return getNodeByViewId(root, "splash_screen_progressBar") != null;
     }
 
-    public AccessibilityNodeInfoCompat findSignUpButton(AccessibilityNodeInfoCompat root) {
-        return getNodeByViewId(root, "btn_msignup");
+    public AccessibilityNodeInfoCompat findSignUpButtonInAccountsScreen(AccessibilityNodeInfoCompat root) {
+        ViewIdTextModel model = new ViewIdTextModel("btn_msignup", "New to Flipkart?");
+        return getNodeByViewIdAndText(root, model);
+    }
+
+    public AccessibilityNodeInfoCompat findSignUpButtonInNewAccountScreen(AccessibilityNodeInfoCompat root) {
+        ViewIdTextModel model = new ViewIdTextModel("btn_msignup", "SIGN UP");
+        return getNodeByViewIdAndText(root, model);
     }
 
     public AccessibilityNodeInfoCompat findEnterMobileNumberEditText(AccessibilityNodeInfoCompat root) {
@@ -60,7 +70,10 @@ public class FlipkartHelper extends BaseHelper {
 
     public boolean isOTPScreenOpened(AccessibilityNodeInfoCompat root) {
         ViewIdTextModel model = new ViewIdTextModel("description_text", "Please enter the verification code sent to");
-        return (getNodeByText(root, "Not received your code?") != null)
-                && (getNodeByViewIdAndText(root, model) != null);
+        return (getNodeByViewIdAndText(root, model) != null);
+    }
+
+    public AccessibilityNodeInfoCompat getResendCodeButton(AccessibilityNodeInfoCompat root) {
+        return getNodeByViewId(root, "resendCode");
     }
 }

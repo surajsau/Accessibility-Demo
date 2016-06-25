@@ -10,16 +10,19 @@
 
     <Button
         android:id="@+id/btnPermitAccessibility"
-        android:contentDescription="myButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Accessibility" />
 
     <Button
         android:id="@+id/btnPermitOverlay"
-        android:contentDescription="myButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Draw over screen" />
+
+    <Button android:id="@+id/btnDownloadHindi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download hindi"/>
 
 </LinearLayout>

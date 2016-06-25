@@ -2,9 +2,12 @@ package com.halfplatepoha.accesibility;
 
 import android.content.Intent;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
@@ -16,13 +19,17 @@ import com.halfplatepoha.accesibility.util.Utils;
 /**
  * Created by surajkumarsau on 18/06/16.
  */
-public class HelperActivity extends AppCompatActivity implements IConstants, View.OnClickListener {
+public class HelperActivity extends AppCompatActivity implements IConstants, View.OnClickListener, TextToSpeech.OnInitListener {
+
+    private static final String TAG = HelperActivity.class.getSimpleName();
 
     private Button btnChoice1;
     private Button btnChoice2;
 
     private FlipkartLoginStages mStage;
     private Rect toBeIndicatedRect;
+
+    private TextToSpeech mTts;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -33,6 +40,15 @@ public class HelperActivity extends AppCompatActivity implements IConstants, Vie
 
         initResources();
         setTextInButtons();
+
+        speak();
+    }
+
+    private void speak() {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            mTts.speak(Utils.getSpeechString(mStage), TextToSpeech.QUEUE_FLUSH, null, null);
+        else
+            mTts.speak(Utils.getSpeechString(mStage), TextToSpeech.QUEUE_FLUSH, null);
     }
 
     private void getDataFromIntent() {
@@ -43,6 +59,8 @@ public class HelperActivity extends AppCompatActivity implements IConstants, Vie
     }
 
     private void initResources() {
+        mTts = new TextToSpeech(this, this);
+
         btnChoice1 = (Button) findViewById(R.id.btnChoice1);
         btnChoice2 = (Button) findViewById(R.id.btnChoice2);
 
@@ -76,5 +94,22 @@ public class HelperActivity extends AppCompatActivity implements IConstants, Vie
             }
             break;
         }
+    }
+
+    @Override
+    public void onInit(int status) {
+        if(status == TextToSpeech.SUCCESS) {
+        } else {
+            Log.e(TAG, "Couldn't initialize text to speech");
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if(mTts != null) {
+            mTts.stop();
+            mTts.shutdown();
+        }
+        super.onPause();
     }
 }
