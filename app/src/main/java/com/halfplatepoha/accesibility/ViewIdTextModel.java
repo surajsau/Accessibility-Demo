@@ -2,6 +2,8 @@ package com.halfplatepoha.accesibility;
 
 /**
  * Created by surajkumarsau on 05/06/16.
+ *
+ * Model for when both ViewID and Text are required to be compared
  */
 public class ViewIdTextModel {
 

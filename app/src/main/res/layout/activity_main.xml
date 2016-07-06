@@ -20,9 +20,9 @@
         android:layout_height="wrap_content"
         android:text="Draw over screen" />
 
-    <Button android:id="@+id/btnDownloadHindi"
+    <Button android:id="btnCheckTTS"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Download hindi"/>
+        android:text="TTS Availability"/>
 
 </LinearLayout>

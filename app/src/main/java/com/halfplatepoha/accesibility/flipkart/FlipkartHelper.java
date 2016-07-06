@@ -8,6 +8,8 @@ import com.halfplatepoha.accesibility.ViewIdTextModel;
 
 /**
  * Created by surajkumarsau on 06/06/16.
+ *
+ * Helper class for Flipkart app
  */
 public class FlipkartHelper extends BaseHelper {
 
@@ -16,6 +18,7 @@ public class FlipkartHelper extends BaseHelper {
     }
 
     //--not working on all devices (different launchers issue)
+    //--splash screen has no id or description using which it can be found out
     public boolean isFlipkartAppIconClicked(AccessibilityNodeInfoCompat root) {
         return (root.getContentDescription() != null ?
                 "Flipkart".equalsIgnoreCase(root.getContentDescription().toString()):false);

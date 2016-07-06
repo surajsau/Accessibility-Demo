@@ -33,8 +33,11 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 
     private Queue<AccessibilityNodeInfoCompat> mQueue;
 
-    private MediaPlayer pingPlayer, hangoutPlayer;
-
+    /**
+     * TextToSpeech will be work for most of the phones as they use language packs
+     * Google provide. However, MI uses a different TTS altogether. So, better approach
+     * would be to record voices and play audio files instead
+     */
     private TextToSpeech mTts;
 
     private Finder mFinder;
@@ -53,17 +56,10 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 
     private IndicatorService mIndicatorService;
 
-    private String getEventText(AccessibilityEvent event) {
-        StringBuilder sb = new StringBuilder();
-        for (CharSequence s : event.getText()) {
-            sb.append(s);
-        }
-        return sb.toString();
-    }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent != null) {
+            //--result received from startService in HelperActivity
             callbackResult = intent.getStringExtra(CHOICE_RESULT);
             foundRect = intent.getParcelableExtra(RECT_TO_BE_INDICATED);
             postCallback();
@@ -75,8 +71,6 @@ public class AccessibilityTestService extends AccessibilityService implements IC
     public void onCreate() {
         super.onCreate();
         mTts = new TextToSpeech(getApplicationContext(), this);
-        pingPlayer = MediaPlayer.create(getApplicationContext(), R.raw.ping);
-        hangoutPlayer = MediaPlayer.create(getApplicationContext(), R.raw.hangout);
 
         Intent indicatorIntent = new Intent(this, IndicatorService.class);
         bindService(indicatorIntent, this, Context.BIND_AUTO_CREATE);
@@ -90,13 +84,17 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         switch (event.getEventType()) {
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED: {
                 if(nodeInfo != null) {
-//                    if(nodeInfo != null) {
-//                        Log.d("==", "==============");
-//                        logOthers(nodeInfo);
-//                        Log.d("==", "==============");
-//                    }
-//
+                    /**
+                     * In order to log all the AccessibilityNodes in a screen uncomment
+                     * dfs(nodeInfo) and comment the rest
+                     */
+
 //                    dfs(nodeInfo);
+
+                    /**
+                     * The below is the switch case which checks the stage where the user has arrived
+                     * and accordingly take action
+                     */
                     switch (mStage) {
 
                         case ZERO:{
@@ -158,12 +156,10 @@ public class AccessibilityTestService extends AccessibilityService implements IC
 
             case AccessibilityEvent.TYPE_VIEW_CLICKED: {
 
-//                if(nodeInfo != null) {
-//                    Log.d("==", "==============");
-//                    logOthers(nodeInfo);
-//                    Log.d("==", "==============");
-//                }
-
+                /**
+                 * Similar to above, according to the stage the use is in responsd to the click
+                 * action on the screen on a particular node
+                 */
                 switch (mStage) {
                     case SIGNUP_SIGNIN_SCREEN:{
                         if(nodeInfo != null && mFKHelper.isSignUpButtonClicked(nodeInfo)) {
@@ -215,45 +211,35 @@ public class AccessibilityTestService extends AccessibilityService implements IC
     protected void onServiceConnected() {
         super.onServiceConnected();
         Log.v(TAG, "onServiceConnected");
+
+        //--queue for dfs
         mQueue = new LinkedList<>();
 
+        //--this instance can be shifted to BaseHelper class instead
         mFinder = Finder.getInstance();
-        pingPlayer.start();
+
         foundRect = new Rect();
         mStage = FlipkartLoginStages.ZERO;
         mFKHelper = new FlipkartHelper(mFinder, "com.flipkart.android:id/");
     }
 
-    private void logInfo(AccessibilityNodeInfoCompat nodeInfo) {
-        if(nodeInfo != null) {
-            Log.i("child i", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
-                    nodeInfo.getViewIdResourceName(),
-                    nodeInfo.getContentDescription(),
-                    nodeInfo.getClassName(),
-                    nodeInfo.getText()));
-        }
-    }
-
     private void logOthers(AccessibilityNodeInfoCompat nodeInfo) {
         if(nodeInfo != null) {
-            Log.e("child e", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
+            Log.e("child e", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s [package] %s",
                     nodeInfo.getViewIdResourceName(),
                     nodeInfo.getContentDescription(),
                     nodeInfo.getClassName(),
-                    nodeInfo.getText()));
+                    nodeInfo.getText(),
+                    nodeInfo.getPackageName()));
         }
     }
 
-    private void logOthersX(AccessibilityNodeInfoCompat nodeInfo) {
-        if(nodeInfo != null) {
-            Log.v("child e", String.format("[resid] %s, [desc] %s, [type] %s, [text] %s",
-                    nodeInfo.getViewIdResourceName(),
-                    nodeInfo.getContentDescription(),
-                    nodeInfo.getClassName(),
-                    nodeInfo.getText()));
-        }
-    }
-
+    /**
+     * Don't delete this function. You'll need it when you want to check for IDs on a screen.
+     * At the time uncomment dfs(nodeInfo) in AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+     * and comment the rest
+     * @param root
+     */
     private void dfs(AccessibilityNodeInfoCompat root) {
         mQueue.add(root);
 
@@ -274,36 +260,29 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         mQueue.clear();
     }
 
-    private void dfsX(AccessibilityNodeInfoCompat root) {
-        mQueue.add(root);
-
-        while(!mQueue.isEmpty()) {
-            AccessibilityNodeInfoCompat node = mQueue.remove();
-
-            logOthersX(node);
-
-            if(node.getChildCount() > 0) {
-                for(int i=0; i<node.getChildCount(); i++) {
-                    if(node.getChild(i) != null)
-                        mQueue.add(node.getChild(i));
-                }
-            }
-
-        }
-
-        mQueue.clear();
-    }
-
+    /**
+     * Show indicator on screen according to the indicated rect and stage
+     * @param rect
+     */
     private void showIndicator(Rect rect) {
         if(isBound)
             mIndicatorService.showIndicator(rect, mStage);
     }
 
+    /**
+     * Hide the indicator from screen
+     */
     private void hideIndicator() {
         if(isBound)
             mIndicatorService.hideIndicator();
     }
 
+    /**
+     * Start the activity for showing dialog on screen. It's a full screen activity
+     * with transaparent background.
+     *
+     * Intent takes : current stage, to be indicated next rect
+     */
     private void showDialog() {
         speak(mStage);
 
@@ -321,6 +300,9 @@ public class AccessibilityTestService extends AccessibilityService implements IC
             mTts.speak(Utils.getSpeechString(stage), TextToSpeech.QUEUE_FLUSH, null);
     }
 
+    /**
+     * Function handling the result on clicking an option in the dialog activity
+     */
     private void postCallback() {
         switch (callbackResult) {
 
@@ -351,7 +333,7 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         }
     }
 
-    //--on indicator binder service connected
+    //--on IndicatorService binder service connected
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         IndicatorService.IndicatorBinder binder = (IndicatorService.IndicatorBinder) service;
@@ -359,6 +341,7 @@ public class AccessibilityTestService extends AccessibilityService implements IC
         isBound = true;
     }
 
+    //--on IndicatorService disconnected
     @Override
     public void onServiceDisconnected(ComponentName name) {
         isBound = false;

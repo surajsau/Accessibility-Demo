@@ -4,13 +4,21 @@ import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 
 /**
  * Created by surajkumarsau on 05/06/16.
+ *
+ * Base class for all App helper classes
  */
+
 public class BaseHelper {
 
     public String mBaseId;
 
     private Finder mFinder;
 
+    /**
+     * @param finder **instead of passing reference of Finder always, an instance of it
+     *               can be kept here itself
+     * @param baseId basically the package name. Can be checked in logs
+     */
     public BaseHelper(Finder finder, String baseId) {
         mFinder = finder;
         mBaseId = baseId;

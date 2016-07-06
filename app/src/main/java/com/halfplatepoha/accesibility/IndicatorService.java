@@ -28,6 +28,8 @@ import java.util.Locale;
 
 /**
  * Created by surajkumarsau on 18/06/16.
+ *
+ * Binding Service for drawing the indicator on Screen
  */
 public class IndicatorService extends Service implements TextToSpeech.OnInitListener {
 
@@ -36,10 +38,13 @@ public class IndicatorService extends Service implements TextToSpeech.OnInitList
     private WindowManager windowManager;
     private LinearLayout linearLayout;
 
-    private Rect mRect;
-
     private IndicatorBinder mBinder;
 
+    /**
+     * TextToSpeech will be work for most of the phones as they use language packs
+     * Google provide. However, MI uses a different TTS altogether. So, better approach
+     * would be to record voices and play audio files instead
+     */
     private TextToSpeech mTts;
 
     private boolean isAttached;

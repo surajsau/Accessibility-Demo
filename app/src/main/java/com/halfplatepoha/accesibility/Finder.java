@@ -8,6 +8,8 @@ import java.util.Queue;
 
 /**
  * Created by surajkumarsau on 05/06/16.
+ *
+ * Finder is responsible for dfs through the AccessibilityNode tree in a given screen view
  */
 public class Finder {
 
@@ -25,13 +27,18 @@ public class Finder {
         mQueue = new LinkedList<>();
     }
 
+    /**
+     * DFS for searching the AccessibilityNode in given View hierarchy
+     * @param root the root of AccessibilityNode tree
+     * @param searchParameter
+     * @param searchType
+     * @return
+     */
     public AccessibilityNodeInfoCompat dfs(AccessibilityNodeInfoCompat root, @NonNull Object searchParameter, SearchParameterType searchType) {
         mQueue.add(root);
 
         while(!mQueue.isEmpty()) {
             AccessibilityNodeInfoCompat node = mQueue.remove();
-
-//            logOthers(node);
 
             switch (searchType) {
                 case TYPE_VIEW_RESOURCE_ID: {

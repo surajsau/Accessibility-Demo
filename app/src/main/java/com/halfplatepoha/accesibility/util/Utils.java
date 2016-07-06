@@ -9,6 +9,11 @@ import com.halfplatepoha.accesibility.flipkart.FlipkartLoginStages;
  */
 public class Utils {
 
+    /**
+     * For the first option button
+     * @param stage logical stage in the flow
+     * @return string to be shown on popup
+     */
     public static String getFirstChoice(FlipkartLoginStages stage) {
         switch (stage) {
             case ZERO:
@@ -21,6 +26,11 @@ public class Utils {
         return "";
     }
 
+    /**
+     * For the second option button
+     * @param stage logical stage in flow
+     * @return string to be shown on popup
+     */
     public static String getSecondChoice(FlipkartLoginStages stage) {
         switch (stage) {
             case ZERO:
@@ -33,6 +43,10 @@ public class Utils {
         return "";
     }
 
+    /**
+     * @param stage
+     * @return result to be sent back in Intent on clicking FirstChoice
+     */
     public static String getFirstChoiceResult(FlipkartLoginStages stage) {
         switch (stage) {
             case ZERO:
@@ -43,6 +57,10 @@ public class Utils {
         return "";
     }
 
+    /**
+     * @param stage
+     * @return result to be sent back in Intent on clicking SecondChoice
+     */
     public static String getSecondChoiceResult(FlipkartLoginStages stage) {
         switch (stage) {
             case ZERO:
@@ -53,6 +71,10 @@ public class Utils {
         return "";
     }
 
+    /**
+     * @param stage
+     * @return hindi string to be spoken by the TTS at a given stage
+     */
     public static String getSpeechString(FlipkartLoginStages stage) {
         switch (stage) {
             case ZERO:

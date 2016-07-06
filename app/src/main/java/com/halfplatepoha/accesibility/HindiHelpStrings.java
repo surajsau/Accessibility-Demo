@@ -2,6 +2,8 @@ package com.halfplatepoha.accesibility;
 
 /**
  * Created by surajkumarsau on 25/06/16.
+ *
+ * Strings to be spoken in Hindi
  */
 public interface HindiHelpStrings {
     String NEW_OLD_USER = "आप फ्लिपकार्ट पर नए या पुराने हैं? दिए गए विकल्पों में से किसी एक को चुनें";

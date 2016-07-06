@@ -18,6 +18,8 @@ import com.halfplatepoha.accesibility.util.Utils;
 
 /**
  * Created by surajkumarsau on 18/06/16.
+ *
+ * Transparent Background activity that is used to show Dialog with options
  */
 public class HelperActivity extends AppCompatActivity implements IConstants, View.OnClickListener, TextToSpeech.OnInitListener {
 
@@ -26,15 +28,32 @@ public class HelperActivity extends AppCompatActivity implements IConstants, Vie
     private Button btnChoice1;
     private Button btnChoice2;
 
+    /**
+     * The current stage in the flow during which this activity opens
+     */
     private FlipkartLoginStages mStage;
+
+    /**
+     * On Clicking an option sometimes, you would need to show indicator on a view on the current
+     * screen itself. Since, the TYPE_WINDOW_CONTENT_CHANGED isn't called again on the screen you
+     * cannot get the node again. Hence, passing the next to be indicated node using intent.
+     */
     private Rect toBeIndicatedRect;
 
+    /**
+     * TextToSpeech will be work for most of the phones as they use language packs
+     * Google provide. However, MI uses a different TTS altogether. So, better approach
+     * would be to record voices and play audio files instead
+     */
     private TextToSpeech mTts;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //--required to prevent activity from showing any title at all
         requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         getDataFromIntent();
         setContentView(R.layout.activity_helper);
 
@@ -78,7 +97,7 @@ public class HelperActivity extends AppCompatActivity implements IConstants, Vie
         switch (v.getId()) {
             case R.id.btnChoice1:{
                 Intent choiceIntent = new Intent(HelperActivity.this, AccessibilityTestService.class);
-                choiceIntent.putExtra(CHOICE_RESULT, ChoiceResults.NEW_USER);
+                choiceIntent.putExtra(CHOICE_RESULT, Utils.getFirstChoiceResult(mStage));
                 choiceIntent.putExtra(RECT_TO_BE_INDICATED, toBeIndicatedRect);
                 startService(choiceIntent);
                 finish();
@@ -87,7 +106,7 @@ public class HelperActivity extends AppCompatActivity implements IConstants, Vie
 
             case R.id.btnChoice2: {
                 Intent choiceIntent = new Intent(HelperActivity.this, AccessibilityTestService.class);
-                choiceIntent.putExtra(CHOICE_RESULT, ChoiceResults.EXISTING_USER);
+                choiceIntent.putExtra(CHOICE_RESULT, Utils.getSecondChoiceResult(mStage));
                 choiceIntent.putExtra(RECT_TO_BE_INDICATED, toBeIndicatedRect);
                 startService(choiceIntent);
                 finish();
